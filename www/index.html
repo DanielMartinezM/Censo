@@ -1,0 +1,1876 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#006874" />
+  <title>ElectroCenso Pro - Gestión de Cargas</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    :root {
+      --primary: #006874;
+      --primary-dark: #004f58;
+      --primary-container: #97f0ff;
+      --on-primary: #ffffff;
+      --on-primary-container: #001f24;
+      --secondary: #4a6267;
+      --secondary-container: #cde7ec;
+      --on-secondary-container: #051f23;
+      --surface: #f5fafb;
+      --surface-card: #ffffff;
+      --surface-variant: #dbe4e6;
+      --on-surface: #171d1e;
+      --on-surface-variant: #3f484a;
+      --outline: #6f797a;
+      --outline-variant: #bfc8ca;
+      --error: #ba1a1a;
+      --error-container: #ffdad6;
+      --success: #146c2e;
+      --success-container: #c4eed0;
+      --warning: #7c5800;
+      --warning-container: #ffdea6;
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+      --shadow-sm: 0 1px 3px rgba(0, 31, 36, 0.08), 0 1px 2px rgba(0, 31, 36, 0.05);
+      --shadow-md: 0 4px 12px rgba(0, 31, 36, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      font-family: 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background-color: var(--surface);
+      color: var(--on-surface);
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: calc(84px + env(safe-area-inset-bottom));
+      min-height: 100vh;
+    }
+
+    .app-header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: var(--on-primary);
+      padding: 16px 18px 14px;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      box-shadow: 0 2px 8px rgba(0, 31, 36, 0.16);
+    }
+
+    .app-header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 11px;
+      background: rgba(255, 255, 255, 0.16);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .brand h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .brand p {
+      font-size: 0.74rem;
+      opacity: 0.85;
+    }
+
+    .badge-offline {
+      background: rgba(151, 240, 255, 0.22);
+      border: 1px solid rgba(151, 240, 255, 0.45);
+      color: #e0fbff;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 4px 9px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 14px;
+    }
+
+    .tab-panel {
+      display: none;
+      animation: fadeIn 0.18s ease-out;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .subtabs-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      background: var(--surface-card);
+      padding: 6px;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 14px;
+      border: 1px solid var(--surface-variant);
+    }
+
+    .subtabs-bar.two-cols {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .subtab-btn {
+      border: none;
+      background: transparent;
+      color: var(--on-surface-variant);
+      padding: 9px 6px;
+      border-radius: var(--radius-md);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      transition: all 0.18s ease;
+    }
+
+    .subtab-btn .step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--surface-variant);
+      color: var(--on-surface-variant);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .subtab-btn.active {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+
+    .subtab-btn.active .step-num {
+      background: var(--primary);
+      color: var(--on-primary);
+    }
+
+    .subpanel {
+      display: none;
+    }
+
+    .subpanel.active {
+      display: block;
+    }
+
+    .card {
+      background: var(--surface-card);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid #e3ecee;
+      margin-bottom: 14px;
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .card-subtitle {
+      font-size: 0.8rem;
+      color: var(--on-surface-variant);
+      margin-bottom: 14px;
+    }
+
+    .form-group {
+      margin-bottom: 13px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--on-surface-variant);
+      margin-bottom: 5px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 11px 13px;
+      border: 1.5px solid var(--outline-variant);
+      border-radius: var(--radius-md);
+      font-size: 0.94rem;
+      color: var(--on-surface);
+      background: #ffffff;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(0, 104, 116, 0.14);
+    }
+
+    input.valid-field {
+      border-color: var(--success);
+      background-color: #f7fcf8;
+    }
+
+    input.invalid-field {
+      border-color: var(--error);
+      background-color: #fff9f9;
+    }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .spec-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      background: #eef6f8;
+      border: 1px solid #cde2e6;
+      border-radius: var(--radius-md);
+      padding: 10px;
+      margin-bottom: 13px;
+    }
+
+    .spec-pill {
+      text-align: center;
+      background: #ffffff;
+      padding: 7px 6px;
+      border-radius: var(--radius-sm);
+      border: 1px solid #dbe8eb;
+    }
+
+    .spec-pill span {
+      display: block;
+      font-size: 0.68rem;
+      color: var(--on-surface-variant);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .spec-pill strong {
+      font-size: 0.95rem;
+      color: var(--primary-dark);
+    }
+
+    .stepper-control {
+      display: flex;
+      align-items: center;
+      border: 1.5px solid var(--outline-variant);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .stepper-control button {
+      width: 40px;
+      height: 42px;
+      border: none;
+      background: #f0f6f7;
+      color: var(--primary-dark);
+      font-size: 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .stepper-control button:active {
+      background: var(--primary-container);
+    }
+
+    .stepper-control input {
+      border: none;
+      text-align: center;
+      font-weight: 700;
+      padding: 8px 4px;
+      border-radius: 0;
+    }
+
+    .stepper-control input:focus {
+      box-shadow: none;
+    }
+
+    .time-input-group {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 6px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 11px 16px;
+      border-radius: var(--radius-md);
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.15s, background-color 0.15s;
+      width: 100%;
+    }
+
+    .btn:active {
+      transform: scale(0.985);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: var(--on-primary);
+    }
+
+    .btn-secondary {
+      background: var(--secondary-container);
+      color: var(--on-secondary-container);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid var(--outline-variant);
+      color: var(--on-surface);
+    }
+
+    .btn-danger-soft {
+      background: var(--error-container);
+      color: var(--error);
+    }
+
+    .btn-whatsapp {
+      background: #128c7e;
+      color: #ffffff;
+    }
+
+    .btn-email {
+      background: #1a73e8;
+      color: #ffffff;
+    }
+
+    .btn-sm {
+      padding: 7px 11px;
+      font-size: 0.8rem;
+      width: auto;
+    }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 6px;
+    }
+
+    .chip {
+      padding: 6px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--outline-variant);
+      background: #f6fafa;
+      color: var(--on-surface-variant);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .chip.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 8px;
+      border-radius: var(--radius-md);
+      border: 1px solid #e0eaec;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+
+    th {
+      background: #edf5f7;
+      color: var(--primary-dark);
+      font-weight: 700;
+      text-align: left;
+      padding: 9px 8px;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 8px;
+      border-top: 1px solid #edf2f4;
+      vertical-align: middle;
+    }
+
+    .num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .del-row-btn {
+      background: var(--error-container);
+      color: var(--error);
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .kpi-card {
+      border-radius: var(--radius-lg);
+      padding: 16px 14px;
+      color: #ffffff;
+      box-shadow: var(--shadow-md);
+    }
+
+    .kpi-kwh {
+      background: linear-gradient(135deg, #006874 0%, #008391 100%);
+    }
+
+    .kpi-kva {
+      background: linear-gradient(135deg, #274c77 0%, #3a6ea5 100%);
+    }
+
+    .kpi-label {
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      opacity: 0.9;
+      font-weight: 600;
+    }
+
+    .kpi-value {
+      font-size: 1.75rem;
+      font-weight: 800;
+      margin: 4px 0 2px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .kpi-sub {
+      font-size: 0.75rem;
+      opacity: 0.88;
+    }
+
+    .legend-box {
+      background: #f3f9fa;
+      border: 1.5px solid #b8dce2;
+      border-radius: var(--radius-lg);
+      padding: 15px;
+      margin-bottom: 14px;
+    }
+
+    .legend-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #cfe4e8;
+    }
+
+    .legend-header h3 {
+      font-size: 0.95rem;
+      color: var(--primary-dark);
+    }
+
+    .system-tag {
+      background: var(--primary);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 999px;
+    }
+
+    .legend-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .legend-item {
+      background: #ffffff;
+      padding: 10px;
+      border-radius: var(--radius-md);
+      border: 1px solid #dbe9ec;
+    }
+
+    .legend-item small {
+      display: block;
+      font-size: 0.71rem;
+      color: var(--on-surface-variant);
+      margin-bottom: 2px;
+    }
+
+    .legend-item strong {
+      font-size: 0.88rem;
+      color: var(--on-surface);
+    }
+
+    .legend-notes {
+      margin-top: 10px;
+      padding: 10px;
+      background: #ffffff;
+      border-radius: var(--radius-md);
+      border-left: 4px solid var(--primary);
+      font-size: 0.8rem;
+      color: var(--on-surface-variant);
+      line-height: 1.45;
+    }
+
+    .list-item {
+      background: #ffffff;
+      border: 1px solid #e0eaec;
+      border-radius: var(--radius-md);
+      padding: 12px;
+      margin-bottom: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .list-item-info h4 {
+      font-size: 0.92rem;
+      color: var(--on-surface);
+      margin-bottom: 3px;
+    }
+
+    .list-item-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: var(--on-surface-variant);
+    }
+
+    .tag-v {
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.7rem;
+    }
+
+    .tag-110 { background: #e0f2fe; color: #0369a1; }
+    .tag-220 { background: #fef3c7; color: #b45309; }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #ffffff;
+      border-top: 1px solid #dbe4e6;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+      z-index: 50;
+      box-shadow: 0 -2px 10px rgba(0, 31, 36, 0.06);
+    }
+
+    .nav-btn {
+      border: none;
+      background: transparent;
+      color: var(--on-surface-variant);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 6px 4px;
+      border-radius: 14px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .nav-btn .nav-icon {
+      font-size: 1.2rem;
+      padding: 2px 14px;
+      border-radius: 999px;
+      transition: background 0.15s;
+    }
+
+    .nav-btn.active {
+      color: var(--primary-dark);
+      font-weight: 700;
+    }
+
+    .nav-btn.active .nav-icon {
+      background: var(--primary-container);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 86px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #171d1e;
+      color: #ffffff;
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 0.84rem;
+      font-weight: 500;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.22s ease;
+      z-index: 100;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+      max-width: 92vw;
+      text-align: center;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 28px 16px;
+      color: var(--on-surface-variant);
+      font-size: 0.86rem;
+    }
+
+    @media print {
+      body { background: #fff; padding: 0; }
+      .app-header, .bottom-nav, .subtabs-bar, .no-print { display: none !important; }
+      .tab-panel, .subpanel { display: block !important; }
+      .card, .legend-box { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="app-header-top">
+      <div class="brand">
+        <div class="brand-icon">&#9889;</div>
+        <div>
+          <h1>ElectroCenso Pro</h1>
+          <p>Censo de Carga y Acometidas</p>
+        </div>
+      </div>
+      <span class="badge-offline">Offline SQL/Local</span>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- TAB 1: NUEVO CENSO -->
+    <section id="tab-censo" class="tab-panel active">
+      <div class="subtabs-bar">
+        <button class="subtab-btn active" id="subbtn-step1" onclick="goCensoStep(1)">
+          <span class="step-num">1</span>
+          <span>Suscriptor</span>
+        </button>
+        <button class="subtab-btn" id="subbtn-step2" onclick="goCensoStep(2)">
+          <span class="step-num">2</span>
+          <span>Cargas</span>
+        </button>
+        <button class="subtab-btn" id="subbtn-step3" onclick="goCensoStep(3)">
+          <span class="step-num">3</span>
+          <span>Resultados</span>
+        </button>
+      </div>
+
+      <!-- STEP 1: SUSCRIPTOR -->
+      <div id="censo-step-1" class="subpanel active">
+        <div class="card">
+          <div class="card-title">Datos del Suscriptor / Establecimiento</div>
+          <p class="card-subtitle">Complete la identificación antes de registrar las cargas.</p>
+
+          <div class="form-group">
+            <label for="censo-nombre">Nombre del Usuario / Razón Social *</label>
+            <input type="text" id="censo-nombre" placeholder="Ej. Carlos Mendoza / Inversiones Delta" />
+          </div>
+
+          <div class="form-group">
+            <label for="censo-contrato">Número de Contrato *</label>
+            <input type="text" id="censo-contrato" maxlength="13" autocomplete="off" placeholder="Ej. 100001234567" oninput="handleContratoInput(this)" />
+          </div>
+
+          <div class="form-group">
+            <label for="censo-direccion">Dirección del Establecimiento / Inmueble *</label>
+            <textarea id="censo-direccion" rows="2" placeholder="Sector, calle, número de casa o local..."></textarea>
+          </div>
+
+          <button class="btn btn-primary" onclick="validateStep1AndNext()">
+            Continuar a Carga de Equipos &rarr;
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 2: CARGAS Y EQUIPOS -->
+      <div id="censo-step-2" class="subpanel">
+        <div class="card">
+          <div class="card-title">
+            <span>Agregar Equipo al Censo</span>
+            <button class="btn btn-outline btn-sm" onclick="switchMainTab('tab-biblioteca'); goBibSubtab(2)">+ Nuevo en BD</button>
+          </div>
+          <p class="card-subtitle">Los datos técnicos se precargan desde la biblioteca.</p>
+
+          <div class="form-group">
+            <label for="censo-equipo-select">Seleccionar Equipo</label>
+            <select id="censo-equipo-select" onchange="updateSelectedEquipoPreview()"></select>
+          </div>
+
+          <div class="spec-strip">
+            <div class="spec-pill">
+              <span>Potencia</span>
+              <strong id="prev-watts">0 W</strong>
+            </div>
+            <div class="spec-pill">
+              <span>Tensión</span>
+              <strong id="prev-voltaje">110 V</strong>
+            </div>
+            <div class="spec-pill">
+              <span>Factor Pot.</span>
+              <strong id="prev-fp">0.95</strong>
+            </div>
+          </div>
+
+          <div class="row-2">
+            <div class="form-group">
+              <label for="censo-cantidad">Cantidad de Equipos</label>
+              <div class="stepper-control">
+                <button type="button" onclick="adjustQty(-1)">-</button>
+                <input type="number" id="censo-cantidad" value="1" min="1" step="1" />
+                <button type="button" onclick="adjustQty(1)">+</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="censo-tiempo">Tiempo de Uso Diario</label>
+              <div class="time-input-group">
+                <input type="number" id="censo-tiempo" value="4" min="0.1" step="0.1" />
+                <select id="censo-unidad-tiempo">
+                  <option value="horas">Horas</option>
+                  <option value="minutos">Minutos</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" onclick="addEquipoToCenso()">
+            + Añadir al Listado del Censo
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span>Equipos Censados (<span id="count-items">0</span>)</span>
+            <span style="font-size:0.8rem; color:var(--primary);" id="live-subtotal">0 W | 0.00 kVA</span>
+          </div>
+
+          <div id="censo-items-container">
+            <div class="empty-state">Aún no hay equipos agregados a este censo.</div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn btn-outline" onclick="goCensoStep(1)">&larr; Suscriptor</button>
+            <button class="btn btn-primary" onclick="finalizarYGuardarCenso()">Finalizar y Calcular &#10003;</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: RESULTADOS Y LEYENDA -->
+      <div id="censo-step-3" class="subpanel">
+        <div id="resultados-empty" class="card">
+          <div class="empty-state">
+            Complete los datos del suscriptor y agregue al menos un equipo para generar los resultados técnicos.
+            <br><br>
+            <button class="btn btn-primary btn-sm" onclick="goCensoStep(2)">Ir a Cargas</button>
+          </div>
+        </div>
+
+        <div id="resultados-content" style="display:none;">
+          <div class="card">
+            <div class="card-title">
+              <span>Resumen Oficial de Censo</span>
+              <span id="res-fecha" style="font-size:0.75rem; font-weight:600; color:var(--secondary);"></span>
+            </div>
+            <div style="font-size:0.84rem; line-height:1.5; color:var(--on-surface-variant);">
+              <strong>Titular:</strong> <span id="res-nombre"></span><br>
+              <strong>Contrato:</strong> <span id="res-contrato"></span><br>
+              <strong>Dirección:</strong> <span id="res-direccion"></span>
+            </div>
+          </div>
+
+          <div class="kpi-grid">
+            <div class="kpi-card kpi-kwh">
+              <div class="kpi-label">Consumo Energético</div>
+              <div class="kpi-value" id="res-kwh">0.00</div>
+              <div class="kpi-sub">kWh / día (<span id="res-kwh-mes">0</span> kWh/mes)</div>
+            </div>
+            <div class="kpi-card kpi-kva">
+              <div class="kpi-label">Demanda Aparente</div>
+              <div class="kpi-value" id="res-kva">0.00</div>
+              <div class="kpi-sub">kVA Totales (<span id="res-watts">0</span> W)</div>
+            </div>
+          </div>
+
+          <div class="legend-box">
+            <div class="legend-header">
+              <h3>Leyenda de Acometida y Protecciones</h3>
+              <span class="system-tag" id="res-sistema">120V / 2H</span>
+            </div>
+
+            <div class="legend-grid">
+              <div class="legend-item">
+                <small>Cable Recomendado (Acometida)</small>
+                <strong id="res-cable">-</strong>
+              </div>
+              <div class="legend-item">
+                <small>Breaker Principal</small>
+                <strong id="res-breaker">-</strong>
+              </div>
+              <div class="legend-item">
+                <small>Conductor Puesta a Tierra</small>
+                <strong id="res-tierra">-</strong>
+              </div>
+              <div class="legend-item">
+                <small>Canalización / Tubería</small>
+                <strong id="res-tuberia">-</strong>
+              </div>
+            </div>
+
+            <div class="legend-notes" id="res-protecciones-extra"></div>
+          </div>
+
+          <div class="card no-print">
+            <div class="card-title">Exportar y Compartir Reporte Completo</div>
+            <div class="btn-row">
+              <button class="btn btn-primary" onclick="descargarPDFActual()">&#128196; Descargar PDF</button>
+              <button class="btn btn-outline" onclick="window.print()">&#128424; Imprimir</button>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-whatsapp" onclick="compartirPDFActual('whatsapp')">&#128242; WhatsApp (PDF)</button>
+              <button class="btn btn-email" onclick="compartirPDFActual('email')">&#9993; Correo (PDF)</button>
+            </div>
+            <div style="margin-top:12px;">
+              <button class="btn btn-secondary" onclick="iniciarNuevoCenso()">+ Iniciar Nuevo Censo</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: BIBLIOTECA DE EQUIPOS -->
+    <section id="tab-biblioteca" class="tab-panel">
+      <div class="subtabs-bar two-cols">
+        <button class="subtab-btn active" id="bib-subbtn-1" onclick="goBibSubtab(1)">
+          <span class="step-num">&#9776;</span>
+          <span>Catálogo Guardado</span>
+        </button>
+        <button class="subtab-btn" id="bib-subbtn-2" onclick="goBibSubtab(2)">
+          <span class="step-num">+</span>
+          <span id="bib-form-tab-label">Registrar Equipo</span>
+        </button>
+      </div>
+
+      <div id="bib-sub-1" class="subpanel active">
+        <div class="card">
+          <div class="form-group" style="margin-bottom:10px;">
+            <input type="text" id="bib-search" placeholder="Buscar equipo por nombre o potencia..." oninput="renderBiblioteca()" />
+          </div>
+          <div class="chip-group" style="margin-bottom:12px;">
+            <button class="chip active" id="filter-v-all" onclick="setVoltajeFilter('ALL')">Todos</button>
+            <button class="chip" id="filter-v-110" onclick="setVoltajeFilter('110')">110 V</button>
+            <button class="chip" id="filter-v-220" onclick="setVoltajeFilter('220')">220 V</button>
+          </div>
+          <div id="bib-list-container"></div>
+        </div>
+      </div>
+
+      <div id="bib-sub-2" class="subpanel">
+        <div class="card">
+          <div class="card-title" id="bib-form-title">Registrar Nuevo Equipo en Base de Datos</div>
+          <p class="card-subtitle">Defina las características eléctricas nominales del equipo.</p>
+
+          <input type="hidden" id="bib-edit-id" value="" />
+
+          <div class="form-group">
+            <label for="bib-nombre">Nombre del Equipo *</label>
+            <input type="text" id="bib-nombre" placeholder="Ej. Bombillo LED 20W / Aire Split 18000 BTU" />
+          </div>
+
+          <div class="row-2">
+            <div class="form-group">
+              <label for="bib-watts">Potencia (Watts) *</label>
+              <input type="number" id="bib-watts" min="1" step="1" placeholder="Ej. 1200" />
+            </div>
+
+            <div class="form-group">
+              <label for="bib-voltaje">Tensión Nominal *</label>
+              <select id="bib-voltaje">
+                <option value="110">110 Voltios (110V)</option>
+                <option value="220">220 Voltios (220V)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="bib-fp">Factor de Potencia (FP) *</label>
+            <input type="number" id="bib-fp" min="0.10" max="1.00" step="0.01" value="0.90" />
+            <div class="chip-group">
+              <button type="button" class="chip" onclick="setFP(1.00)">1.00 Resistiva</button>
+              <button type="button" class="chip" onclick="setFP(0.95)">0.95 LED/Elect.</button>
+              <button type="button" class="chip" onclick="setFP(0.85)">0.85 Motor</button>
+              <button type="button" class="chip" onclick="setFP(0.80)">0.80 Compresor</button>
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button type="button" class="btn btn-outline" onclick="cancelEditEquipo()">Cancelar</button>
+            <button type="button" class="btn btn-primary" onclick="saveEquipoBiblioteca()">Guardar Equipo</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: HISTORIAL DE CENSOS -->
+    <section id="tab-historial" class="tab-panel">
+      <div class="card">
+        <div class="card-title">
+          <span>Historial de Censos Guardados</span>
+          <span id="hist-count" style="font-size:0.8rem; color:var(--primary);">0 registros</span>
+        </div>
+        <div class="form-group" style="margin-top:10px; margin-bottom:12px;">
+          <input type="text" id="hist-search" placeholder="Buscar por suscriptor, contrato o dirección..." oninput="renderHistorial()" />
+        </div>
+        <div id="hist-list-container"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" id="nav-tab-censo" onclick="switchMainTab('tab-censo')">
+      <span class="nav-icon">&#128203;</span>
+      <span>Nuevo Censo</span>
+    </button>
+    <button class="nav-btn" id="nav-tab-biblioteca" onclick="switchMainTab('tab-biblioteca')">
+      <span class="nav-icon">&#128268;</span>
+      <span>Equipos BD</span>
+    </button>
+    <button class="nav-btn" id="nav-tab-historial" onclick="switchMainTab('tab-historial')">
+      <span class="nav-icon">&#128193;</span>
+      <span>Historial</span>
+    </button>
+  </nav>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const DB_EQUIPOS_KEY = 'electrocenso_equipos_v1';
+    const DB_CENSOS_KEY = 'electrocenso_historial_v1';
+
+    const DEFAULT_EQUIPOS = [
+      { id: 'eq-1', nombre: 'Bombillo LED 9W', watts: 9, voltaje: 110, fp: 0.95 },
+      { id: 'eq-2', nombre: 'Bombillo LED 15W', watts: 15, voltaje: 110, fp: 0.95 },
+      { id: 'eq-3', nombre: 'Bombillo LED 20W', watts: 20, voltaje: 110, fp: 0.95 },
+      { id: 'eq-4', nombre: 'Bombillo LED 25W', watts: 25, voltaje: 110, fp: 0.95 },
+      { id: 'eq-5', nombre: 'Bombillo LED 30W', watts: 30, voltaje: 110, fp: 0.95 },
+      { id: 'eq-6', nombre: 'Aire Acondicionado Split 12.000 BTU (110V)', watts: 1150, voltaje: 110, fp: 0.82 },
+      { id: 'eq-7', nombre: 'Aire Acondicionado Split 12.000 BTU (220V)', watts: 1150, voltaje: 220, fp: 0.85 },
+      { id: 'eq-8', nombre: 'Aire Acondicionado Split 18.000 BTU (220V)', watts: 1750, voltaje: 220, fp: 0.85 },
+      { id: 'eq-9', nombre: 'Aire Acondicionado Split 24.000 BTU (220V)', watts: 2350, voltaje: 220, fp: 0.85 },
+      { id: 'eq-10', nombre: 'Nevera Ejecutiva / Doméstica 2 Puertas', watts: 280, voltaje: 110, fp: 0.80 },
+      { id: 'eq-11', nombre: 'Congelador Horizontal (Freezer)', watts: 350, voltaje: 110, fp: 0.80 },
+      { id: 'eq-12', nombre: 'Lavadora Automática', watts: 550, voltaje: 110, fp: 0.85 },
+      { id: 'eq-13', nombre: 'Bomba de Agua Hidroneumática 1/2 HP', watts: 373, voltaje: 110, fp: 0.80 },
+      { id: 'eq-14', nombre: 'Bomba de Agua 1 HP (220V)', watts: 746, voltaje: 220, fp: 0.82 },
+      { id: 'eq-15', nombre: 'Televisor LED Smart TV 43"-55"', watts: 110, voltaje: 110, fp: 0.95 },
+      { id: 'eq-16', nombre: 'Ventilador de Pedestal / Techo', watts: 75, voltaje: 110, fp: 0.85 },
+      { id: 'eq-17', nombre: 'Horno Microondas', watts: 1200, voltaje: 110, fp: 0.90 }
+    ];
+
+    let equiposDB = [];
+    let historialDB = [];
+    let currentCensoItems = [];
+    let lastCompletedCenso = null;
+    let currentVoltajeFilter = 'ALL';
+
+    function initApp() {
+      const savedEq = localStorage.getItem(DB_EQUIPOS_KEY);
+      if (savedEq) {
+        equiposDB = JSON.parse(savedEq);
+      } else {
+        equiposDB = [...DEFAULT_EQUIPOS];
+        saveEquiposDB();
+      }
+
+      const savedHist = localStorage.getItem(DB_CENSOS_KEY);
+      historialDB = savedHist ? JSON.parse(savedHist) : [];
+
+      populateEquipoSelect();
+      renderBiblioteca();
+      renderHistorial();
+    }
+
+    function saveEquiposDB() {
+      localStorage.setItem(DB_EQUIPOS_KEY, JSON.stringify(equiposDB));
+    }
+
+    function saveHistorialDB() {
+      localStorage.setItem(DB_CENSOS_KEY, JSON.stringify(historialDB));
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
+    function switchMainTab(tabId) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      document.getElementById('nav-' + tabId).classList.add('active');
+    }
+
+    function goCensoStep(step) {
+      [1, 2, 3].forEach(n => {
+        document.getElementById('censo-step-' + n).classList.toggle('active', n === step);
+        document.getElementById('subbtn-step' + n).classList.toggle('active', n === step);
+      });
+    }
+
+    function goBibSubtab(sub) {
+      [1, 2].forEach(n => {
+        document.getElementById('bib-sub-' + n).classList.toggle('active', n === sub);
+        document.getElementById('bib-subbtn-' + n).classList.toggle('active', n === sub);
+      });
+    }
+
+    function isValidContrato(val) {
+      return /^10000\d{7}$/.test(val) || /^K000\d{9}$/.test(val);
+    }
+
+    function handleContratoInput(el) {
+      let v = el.value.toUpperCase().replace(/[^0-9K]/g, '');
+      if (v.length > 0 && v[0] === 'K') {
+        v = 'K' + v.slice(1).replace(/K/g, '');
+        if (v.length > 13) v = v.slice(0, 13);
+      } else {
+        v = v.replace(/K/g, '');
+        if (v.length > 12) v = v.slice(0, 12);
+      }
+      el.value = v;
+
+      el.classList.remove('valid-field', 'invalid-field');
+      if (v.length > 0) {
+        if (isValidContrato(v)) {
+          el.classList.add('valid-field');
+        } else {
+          el.classList.add('invalid-field');
+        }
+      }
+    }
+
+    function validateStep1AndNext() {
+      const nombre = document.getElementById('censo-nombre').value.trim();
+      const contrato = document.getElementById('censo-contrato').value.trim();
+      const direccion = document.getElementById('censo-direccion').value.trim();
+
+      if (!nombre) {
+        showToast('Ingrese el nombre del usuario o razón social.');
+        document.getElementById('censo-nombre').focus();
+        return;
+      }
+      if (!isValidContrato(contrato)) {
+        showToast('Ingrese un número de contrato válido.');
+        document.getElementById('censo-contrato').focus();
+        return;
+      }
+      if (!direccion) {
+        showToast('Ingrese la dirección del inmueble.');
+        document.getElementById('censo-direccion').focus();
+        return;
+      }
+      goCensoStep(2);
+    }
+
+    function populateEquipoSelect() {
+      const sel = document.getElementById('censo-equipo-select');
+      sel.innerHTML = '';
+      equiposDB.forEach(eq => {
+        const opt = document.createElement('option');
+        opt.value = eq.id;
+        opt.textContent = `${eq.nombre} (${eq.watts}W - ${eq.voltaje}V)`;
+        sel.appendChild(opt);
+      });
+      updateSelectedEquipoPreview();
+    }
+
+    function updateSelectedEquipoPreview() {
+      const id = document.getElementById('censo-equipo-select').value;
+      const eq = equiposDB.find(e => e.id === id);
+      if (!eq) return;
+      document.getElementById('prev-watts').textContent = `${eq.watts} W`;
+      document.getElementById('prev-voltaje').textContent = `${eq.voltaje} V`;
+      document.getElementById('prev-fp').textContent = Number(eq.fp).toFixed(2);
+    }
+
+    function adjustQty(delta) {
+      const inp = document.getElementById('censo-cantidad');
+      const next = Math.max(1, (parseInt(inp.value, 10) || 1) + delta);
+      inp.value = next;
+    }
+
+    function addEquipoToCenso() {
+      const id = document.getElementById('censo-equipo-select').value;
+      const eq = equiposDB.find(e => e.id === id);
+      if (!eq) {
+        showToast('Seleccione un equipo válido.');
+        return;
+      }
+
+      const cantidad = parseInt(document.getElementById('censo-cantidad').value, 10);
+      const tiempoVal = parseFloat(document.getElementById('censo-tiempo').value);
+      const unidad = document.getElementById('censo-unidad-tiempo').value;
+
+      if (!cantidad || cantidad < 1) {
+        showToast('La cantidad debe ser al menos 1.');
+        return;
+      }
+      if (!tiempoVal || tiempoVal <= 0) {
+        showToast('Ingrese un tiempo de uso válido.');
+        return;
+      }
+
+      const horasDia = unidad === 'minutos' ? (tiempoVal / 60) : tiempoVal;
+      const wattsTotal = eq.watts * cantidad;
+      const kvaTotal = wattsTotal / (1000 * eq.fp);
+      const kwhDia = (wattsTotal * horasDia) / 1000;
+
+      currentCensoItems.push({
+        rowId: 'row-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+        equipoId: eq.id,
+        nombre: eq.nombre,
+        wattsUnit: eq.watts,
+        voltaje: eq.voltaje,
+        fp: eq.fp,
+        cantidad,
+        tiempoOriginal: tiempoVal,
+        unidadTiempo: unidad,
+        horasDia,
+        wattsTotal,
+        kvaTotal,
+        kwhDia
+      });
+
+      renderCensoItems();
+      showToast(`Añadido: ${cantidad}x ${eq.nombre}`);
+    }
+
+    function removeCensoItem(rowId) {
+      currentCensoItems = currentCensoItems.filter(item => item.rowId !== rowId);
+      renderCensoItems();
+    }
+
+    function renderCensoItems() {
+      const container = document.getElementById('censo-items-container');
+      document.getElementById('count-items').textContent = currentCensoItems.length;
+
+      if (currentCensoItems.length === 0) {
+        container.innerHTML = '<div class="empty-state">Aún no hay equipos agregados a este censo.</div>';
+        document.getElementById('live-subtotal').textContent = '0 W | 0.00 kVA';
+        return;
+      }
+
+      let sumW = 0;
+      let sumKva = 0;
+
+      let html = `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Equipo</th>
+                <th class="num">Cant.</th>
+                <th class="num">Uso/día</th>
+                <th class="num">Watts</th>
+                <th class="num">kVA</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+
+      currentCensoItems.forEach(item => {
+        sumW += item.wattsTotal;
+        sumKva += item.kvaTotal;
+        const tiempoLabel = item.unidadTiempo === 'minutos'
+          ? `${item.tiempoOriginal} min`
+          : `${item.tiempoOriginal} h`;
+
+        html += `
+          <tr>
+            <td>
+              <strong>${escapeHtml(item.nombre)}</strong><br>
+              <small style="color:var(--on-surface-variant);">${item.wattsUnit}W · ${item.voltaje}V · FP ${item.fp.toFixed(2)}</small>
+            </td>
+            <td class="num">${item.cantidad}</td>
+            <td class="num">${tiempoLabel}</td>
+            <td class="num">${item.wattsTotal.toLocaleString()}</td>
+            <td class="num">${item.kvaTotal.toFixed(2)}</td>
+            <td class="num"><button class="del-row-btn" onclick="removeCensoItem('${item.rowId}')">&times;</button></td>
+          </tr>
+        `;
+      });
+
+      html += `</tbody></table></div>`;
+      container.innerHTML = html;
+      document.getElementById('live-subtotal').textContent = `${sumW.toLocaleString()} W | ${sumKva.toFixed(2)} kVA`;
+    }
+
+    function calcularDimensionamiento(items, totalWatts, totalKva) {
+      const has220V = items.some(i => Number(i.voltaje) === 220);
+      const isBifasico = has220V || totalKva > 3.6;
+
+      const tensionNominal = isBifasico ? 240 : 120;
+      const sistemaLabel = isBifasico ? 'Bifásico 120/240V (3 Hilos)' : 'Monofásico 120V (2 Hilos)';
+
+      const corrienteNominal = (totalKva * 1000) / tensionNominal;
+      const corrienteDiseno = corrienteNominal * 1.25;
+
+      let cable = '';
+      let breaker = '';
+      let tierra = '';
+      let tuberia = '';
+      let notas = '';
+
+      if (!isBifasico) {
+        if (corrienteDiseno <= 20) {
+          cable = '2 x #12 AWG Cu THHN';
+          breaker = '1 x 20 A (Termomagnético)';
+          tierra = '#12 AWG Cu';
+          tuberia = '1/2" EMT / PVC';
+        } else if (corrienteDiseno <= 30) {
+          cable = '2 x #10 AWG Cu THHN';
+          breaker = '1 x 30 A (Termomagnético)';
+          tierra = '#10 AWG Cu';
+          tuberia = '3/4" EMT / PVC';
+        } else {
+          cable = '2 x #8 AWG Cu THHN';
+          breaker = '1 x 40 A (Termomagnético)';
+          tierra = '#10 AWG Cu';
+          tuberia = '3/4" EMT / PVC';
+        }
+        notas = `Corriente demandada: ${corrienteNominal.toFixed(1)} A (Diseño 125%: ${corrienteDiseno.toFixed(1)} A). Instalar barra de neutro aislada, barra de tierra física con varilla Copperweld 5/8" x 2.40m y protector contra sobretensiones (DPS) monofásico.`;
+      } else {
+        if (corrienteDiseno <= 30) {
+          cable = '3 x #10 AWG Cu THHN';
+          breaker = '2 x 30 A (Bipolar)';
+          tierra = '#10 AWG Cu';
+          tuberia = '3/4" EMT / PVC';
+        } else if (corrienteDiseno <= 40) {
+          cable = '3 x #8 AWG Cu THHN';
+          breaker = '2 x 40 A (Bipolar)';
+          tierra = '#10 AWG Cu';
+          tuberia = '1" EMT / PVC';
+        } else if (corrienteDiseno <= 60) {
+          cable = '3 x #6 AWG Cu THHN';
+          breaker = '2 x 60 A (Bipolar)';
+          tierra = '#8 AWG Cu';
+          tuberia = '1" EMT / PVC';
+        } else if (corrienteDiseno <= 75) {
+          cable = '3 x #4 AWG Cu THHN';
+          breaker = '2 x 70 A (Bipolar)';
+          tierra = '#8 AWG Cu';
+          tuberia = '1-1/4" EMT / PVC';
+        } else if (corrienteDiseno <= 100) {
+          cable = '3 x #2 AWG Cu THHN';
+          breaker = '2 x 100 A (Bipolar)';
+          tierra = '#8 AWG Cu';
+          tuberia = '1-1/2" EMT / PVC';
+        } else if (corrienteDiseno <= 125) {
+          cable = '3 x #1/0 AWG Cu THHN';
+          breaker = '2 x 125 A (Bipolar)';
+          tierra = '#6 AWG Cu';
+          tuberia = '2" EMT / PVC';
+        } else {
+          cable = '3 x #2/0 AWG Cu THHN (o superior)';
+          breaker = '2 x 150 A / 200 A (Bipolar)';
+          tierra = '#6 AWG Cu';
+          tuberia = '2" EMT / PVC';
+        }
+        notas = `Corriente por fase: ${corrienteNominal.toFixed(1)} A (Diseño 125%: ${corrienteDiseno.toFixed(1)} A). Requiere tablero principal bifásico 120/240V, DPS bipolar Clase II contra picos de voltaje, balanceo de cargas de 110V entre fases L1-L2 y puesta a tierra con varilla Copperweld 5/8" x 2.40m.`;
+      }
+
+      return {
+        sistemaLabel,
+        corrienteNominal: corrienteNominal.toFixed(2),
+        corrienteDiseno: corrienteDiseno.toFixed(2),
+        cable,
+        breaker,
+        tierra,
+        tuberia,
+        notas
+      };
+    }
+
+    function finalizarYGuardarCenso() {
+      const nombre = document.getElementById('censo-nombre').value.trim();
+      const contrato = document.getElementById('censo-contrato').value.trim();
+      const direccion = document.getElementById('censo-direccion').value.trim();
+
+      if (!nombre || !isValidContrato(contrato) || !direccion) {
+        showToast('Verifique los datos del suscriptor en el Paso 1.');
+        goCensoStep(1);
+        return;
+      }
+
+      if (currentCensoItems.length === 0) {
+        showToast('Agregue al menos un equipo al censo.');
+        return;
+      }
+
+      const now = new Date();
+      const fechaEjecucion = now.toLocaleDateString('es-VE', {
+        year: 'numeric', month: '2-digit', day: '2-digit'
+      }) + ' ' + now.toLocaleTimeString('es-VE', {
+        hour: '2-digit', minute: '2-digit'
+      });
+
+      const totalWatts = currentCensoItems.reduce((acc, i) => acc + i.wattsTotal, 0);
+      const totalKva = currentCensoItems.reduce((acc, i) => acc + i.kvaTotal, 0);
+      const totalKwhDia = currentCensoItems.reduce((acc, i) => acc + i.kwhDia, 0);
+      const totalKwhMes = totalKwhDia * 30;
+
+      const acometida = calcularDimensionamiento(currentCensoItems, totalWatts, totalKva);
+
+      const censoRecord = {
+        id: 'CEN-' + Date.now(),
+        nombre,
+        contrato,
+        direccion,
+        fecha: fechaEjecucion,
+        items: JSON.parse(JSON.stringify(currentCensoItems)),
+        totalWatts,
+        totalKva,
+        totalKwhDia,
+        totalKwhMes,
+        acometida
+      };
+
+      lastCompletedCenso = censoRecord;
+      historialDB.unshift(censoRecord);
+      saveHistorialDB();
+      renderHistorial();
+
+      displayResultadosCenso(censoRecord);
+      goCensoStep(3);
+      showToast('Censo finalizado y guardado correctamente.');
+    }
+
+    function displayResultadosCenso(censo) {
+      document.getElementById('resultados-empty').style.display = 'none';
+      document.getElementById('resultados-content').style.display = 'block';
+
+      document.getElementById('res-fecha').textContent = censo.fecha;
+      document.getElementById('res-nombre').textContent = censo.nombre;
+      document.getElementById('res-contrato').textContent = censo.contrato;
+      document.getElementById('res-direccion').textContent = censo.direccion;
+
+      document.getElementById('res-kwh').textContent = censo.totalKwhDia.toFixed(2);
+      document.getElementById('res-kwh-mes').textContent = censo.totalKwhMes.toFixed(1);
+      document.getElementById('res-kva').textContent = censo.totalKva.toFixed(2);
+      document.getElementById('res-watts').textContent = censo.totalWatts.toLocaleString();
+
+      document.getElementById('res-sistema').textContent = censo.acometida.sistemaLabel;
+      document.getElementById('res-cable').textContent = censo.acometida.cable;
+      document.getElementById('res-breaker').textContent = censo.acometida.breaker;
+      document.getElementById('res-tierra').textContent = censo.acometida.tierra;
+      document.getElementById('res-tuberia').textContent = censo.acometida.tuberia;
+      document.getElementById('res-protecciones-extra').textContent = censo.acometida.notas;
+    }
+
+    function iniciarNuevoCenso() {
+      currentCensoItems = [];
+      lastCompletedCenso = null;
+      document.getElementById('censo-nombre').value = '';
+      const cInput = document.getElementById('censo-contrato');
+      cInput.value = '';
+      cInput.classList.remove('valid-field', 'invalid-field');
+      document.getElementById('censo-direccion').value = '';
+      renderCensoItems();
+      document.getElementById('resultados-empty').style.display = 'block';
+      document.getElementById('resultados-content').style.display = 'none';
+      goCensoStep(1);
+    }
+
+    function buildCensoPDFDoc(censo) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+      doc.setFillColor(0, 104, 116);
+      doc.rect(0, 0, 210, 28, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('REPORTE TÉCNICO DE CENSO DE CARGA ELÉCTRICA', 14, 13);
+      doc.setFontSize(9.5);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Fecha de Ejecución: ${censo.fecha}   |   ID: ${censo.id}`, 14, 21);
+
+      doc.setTextColor(23, 29, 30);
+      doc.setFillColor(243, 249, 250);
+      doc.setDrawColor(191, 200, 202);
+      doc.roundedRect(14, 34, 182, 28, 2, 2, 'FD');
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('DATOS DEL SUSCRIPTOR / ESTABLECIMIENTO', 18, 41);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.text(`Titular / Razón Social: ${censo.nombre}`, 18, 48);
+      doc.text(`Número de Contrato: ${censo.contrato}`, 18, 54);
+      doc.text(`Dirección: ${censo.direccion}`, 18, 60);
+
+      const rows = censo.items.map((it, idx) => [
+        idx + 1,
+        it.nombre,
+        `${it.voltaje}V`,
+        it.fp.toFixed(2),
+        it.cantidad,
+        `${it.wattsUnit} W`,
+        it.unidadTiempo === 'minutos' ? `${it.tiempoOriginal} min` : `${it.tiempoOriginal} h`,
+        it.kvaTotal.toFixed(2),
+        it.kwhDia.toFixed(2)
+      ]);
+
+      doc.autoTable({
+        startY: 68,
+        head: [['#', 'Equipo Eléctrico', 'Tensión', 'FP', 'Cant.', 'Pot. Unit.', 'Uso/Día', 'kVA', 'kWh/Día']],
+        body: rows,
+        theme: 'grid',
+        headStyles: { fillColor: [0, 104, 116], textColor: 255, fontSize: 8.5, fontStyle: 'bold' },
+        bodyStyles: { fontSize: 8.3, textColor: [30, 35, 36] },
+        columnStyles: {
+          0: { halign: 'center', width: 8 },
+          2: { halign: 'center' },
+          3: { halign: 'center' },
+          4: { halign: 'center' },
+          5: { halign: 'right' },
+          6: { halign: 'right' },
+          7: { halign: 'right' },
+          8: { halign: 'right' }
+        },
+        margin: { left: 14, right: 14 }
+      });
+
+      let y = doc.lastAutoTable.finalY + 8;
+
+      doc.setFillColor(0, 79, 88);
+      doc.roundedRect(14, y, 88, 22, 2, 2, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8.5);
+      doc.text('CONSUMO ENERGÉTICO TOTAL', 18, y + 7);
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${censo.totalKwhDia.toFixed(2)} kWh/día  (${censo.totalKwhMes.toFixed(1)} kWh/mes)`, 18, y + 16);
+
+      doc.setFillColor(39, 76, 119);
+      doc.roundedRect(108, y, 88, 22, 2, 2, 'F');
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica', 'normal');
+      doc.text('DEMANDA APARENTE TOTAL', 112, y + 7);
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${censo.totalKva.toFixed(2)} kVA  (${censo.totalWatts.toLocaleString()} W)`, 112, y + 16);
+
+      y += 30;
+
+      doc.setTextColor(23, 29, 30);
+      doc.setFillColor(243, 249, 250);
+      doc.setDrawColor(0, 104, 116);
+      doc.roundedRect(14, y, 182, 54, 2, 2, 'FD');
+
+      doc.setFontSize(10.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 79, 88);
+      doc.text(`LEYENDA DE ACOMETIDA Y PROTECCIONES (${censo.acometida.sistemaLabel})`, 18, y + 8);
+
+      doc.setFontSize(9.2);
+      doc.setTextColor(23, 29, 30);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`• Cable Recomendado: `, 18, y + 16);
+      doc.setFont('helvetica', 'normal');
+      doc.text(censo.acometida.cable, 60, y + 16);
+
+      doc.setFont('helvetica', 'bold');
+      doc.text(`• Breaker Principal: `, 18, y + 23);
+      doc.setFont('helvetica', 'normal');
+      doc.text(censo.acometida.breaker, 60, y + 23);
+
+      doc.setFont('helvetica', 'bold');
+      doc.text(`• Puesta a Tierra: `, 112, y + 16);
+      doc.setFont('helvetica', 'normal');
+      doc.text(censo.acometida.tierra, 148, y + 16);
+
+      doc.setFont('helvetica', 'bold');
+      doc.text(`• Tubería Conduit: `, 112, y + 23);
+      doc.setFont('helvetica', 'normal');
+      doc.text(censo.acometida.tuberia, 148, y + 23);
+
+      doc.setFontSize(8.5);
+      doc.setTextColor(63, 72, 74);
+      const splitNotes = doc.splitTextToSize(`Protecciones y observaciones: ${censo.acometida.notas}`, 174);
+      doc.text(splitNotes, 18, y + 32);
+
+      return doc;
+    }
+
+    function getPdfFilename(censo) {
+      const cleanName = censo.nombre.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 22);
+      return `Censo_Carga_${censo.contrato}_${cleanName}.pdf`;
+    }
+
+    async function descargarPDFPorObjeto(censo) {
+      if (!window.jspdf) {
+        window.print();
+        return;
+      }
+      const doc = buildCensoPDFDoc(censo);
+      const fileName = getPdfFilename(censo);
+
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem) {
+        try {
+          const base64Data = doc.output('datauristring').split(',')[1];
+          const { Filesystem } = window.Capacitor.Plugins;
+          await Filesystem.writeFile({
+            path: fileName,
+            data: base64Data,
+            directory: 'DOCUMENTS'
+          });
+          showToast(`PDF guardado en Documentos: ${fileName}`);
+          return;
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      doc.save(fileName);
+      showToast(`Descargando ${fileName}`);
+    }
+
+    async function compartirPDFPorObjeto(censo, canal) {
+      if (!window.jspdf) {
+        showToast('Generador PDF no disponible.');
+        return;
+      }
+      const doc = buildCensoPDFDoc(censo);
+      const fileName = getPdfFilename(censo);
+      const mensaje = `Censo de Carga Eléctrica - Contrato: ${censo.contrato} | Titular: ${censo.nombre} | Consumo: ${censo.totalKwhDia.toFixed(2)} kWh/día | Demanda: ${censo.totalKva.toFixed(2)} kVA.`;
+
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem && window.Capacitor.Plugins.Share) {
+        try {
+          const base64Data = doc.output('datauristring').split(',')[1];
+          const { Filesystem, Share } = window.Capacitor.Plugins;
+          const savedFile = await Filesystem.writeFile({
+            path: fileName,
+            data: base64Data,
+            directory: 'CACHE'
+          });
+          await Share.share({
+            title: `Censo de Carga - ${censo.contrato}`,
+            text: mensaje,
+            url: savedFile.uri,
+            dialogTitle: canal === 'whatsapp' ? 'Enviar PDF por WhatsApp' : 'Enviar PDF por Correo'
+          });
+          return;
+        } catch (err) {
+          console.warn('Capacitor Share fallback:', err);
+        }
+      }
+
+      const pdfBlob = doc.output('blob');
+      const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+      if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+        try {
+          await navigator.share({
+            title: `Censo de Carga - ${censo.contrato}`,
+            text: mensaje,
+            files: [pdfFile]
+          });
+          return;
+        } catch (err) {
+          if (err.name === 'AbortError') return;
+        }
+      }
+
+      doc.save(fileName);
+      showToast('PDF descargado. Adjúntelo en la ventana abierta.');
+      setTimeout(() => {
+        if (canal === 'whatsapp') {
+          window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, '_blank');
+        } else {
+          window.location.href = `mailto:?subject=${encodeURIComponent('Reporte Censo de Carga - Contrato ' + censo.contrato)}&body=${encodeURIComponent(mensaje)}`;
+        }
+      }, 600);
+    }
+
+    function descargarPDFActual() {
+      if (lastCompletedCenso) descargarPDFPorObjeto(lastCompletedCenso);
+    }
+
+    function compartirPDFActual(canal) {
+      if (lastCompletedCenso) compartirPDFPorObjeto(lastCompletedCenso, canal);
+    }
+
+    function setVoltajeFilter(v) {
+      currentVoltajeFilter = v;
+      ['ALL', '110', '220'].forEach(k => {
+        document.getElementById('filter-v-' + k.toLowerCase()).classList.toggle('active', k === v);
+      });
+      renderBiblioteca();
+    }
+
+    function setFP(val) {
+      document.getElementById('bib-fp').value = val.toFixed(2);
+    }
+
+    function renderBiblioteca() {
+      const query = (document.getElementById('bib-search').value || '').toLowerCase().trim();
+      const container = document.getElementById('bib-list-container');
+
+      const filtered = equiposDB.filter(eq => {
+        const matchText = eq.nombre.toLowerCase().includes(query) || String(eq.watts).includes(query);
+        const matchV = currentVoltajeFilter === 'ALL' || String(eq.voltaje) === currentVoltajeFilter;
+        return matchText && matchV;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state">No se encontraron equipos con ese filtro.</div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(eq => `
+        <div class="list-item">
+          <div class="list-item-info">
+            <h4>${escapeHtml(eq.nombre)}</h4>
+            <div class="list-item-meta">
+              <span><strong>${eq.watts} W</strong></span>
+              <span class="tag-v ${Number(eq.voltaje) === 220 ? 'tag-220' : 'tag-110'}">${eq.voltaje}V</span>
+              <span>FP: ${Number(eq.fp).toFixed(2)}</span>
+            </div>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-secondary btn-sm" onclick="editEquipoBiblioteca('${eq.id}')">&#9998;</button>
+            <button class="btn btn-danger-soft btn-sm" onclick="deleteEquipoBiblioteca('${eq.id}')">&#128465;</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function saveEquipoBiblioteca() {
+      const editId = document.getElementById('bib-edit-id').value;
+      const nombre = document.getElementById('bib-nombre').value.trim();
+      const watts = parseFloat(document.getElementById('bib-watts').value);
+      const voltaje = parseInt(document.getElementById('bib-voltaje').value, 10);
+      const fp = parseFloat(document.getElementById('bib-fp').value);
+
+      if (!nombre) {
+        showToast('Ingrese el nombre del equipo.');
+        return;
+      }
+      if (!watts || watts <= 0) {
+        showToast('Ingrese una potencia en Watts válida.');
+        return;
+      }
+      if (!fp || fp < 0.1 || fp > 1) {
+        showToast('El Factor de Potencia debe estar entre 0.10 y 1.00.');
+        return;
+      }
+
+      if (editId) {
+        const idx = equiposDB.findIndex(e => e.id === editId);
+        if (idx !== -1) {
+          equiposDB[idx] = { id: editId, nombre, watts, voltaje, fp };
+        }
+        showToast('Equipo actualizado en la base de datos.');
+      } else {
+        equiposDB.unshift({
+          id: 'eq-' + Date.now(),
+          nombre,
+          watts,
+          voltaje,
+          fp
+        });
+        showToast('Equipo guardado en la biblioteca.');
+      }
+
+      saveEquiposDB();
+      populateEquipoSelect();
+      renderBiblioteca();
+      cancelEditEquipo();
+    }
+
+    function editEquipoBiblioteca(id) {
+      const eq = equiposDB.find(e => e.id === id);
+      if (!eq) return;
+      document.getElementById('bib-edit-id').value = eq.id;
+      document.getElementById('bib-nombre').value = eq.nombre;
+      document.getElementById('bib-watts').value = eq.watts;
+      document.getElementById('bib-voltaje').value = String(eq.voltaje);
+      document.getElementById('bib-fp').value = Number(eq.fp).toFixed(2);
+      document.getElementById('bib-form-title').textContent = 'Editar Equipo Existente';
+      document.getElementById('bib-form-tab-label').textContent = 'Editar Equipo';
+      goBibSubtab(2);
+    }
+
+    function cancelEditEquipo() {
+      document.getElementById('bib-edit-id').value = '';
+      document.getElementById('bib-nombre').value = '';
+      document.getElementById('bib-watts').value = '';
+      document.getElementById('bib-voltaje').value = '110';
+      document.getElementById('bib-fp').value = '0.90';
+      document.getElementById('bib-form-title').textContent = 'Registrar Nuevo Equipo en Base de Datos';
+      document.getElementById('bib-form-tab-label').textContent = 'Registrar Equipo';
+      goBibSubtab(1);
+    }
+
+    function deleteEquipoBiblioteca(id) {
+      equiposDB = equiposDB.filter(e => e.id !== id);
+      saveEquiposDB();
+      populateEquipoSelect();
+      renderBiblioteca();
+      showToast('Equipo eliminado de la biblioteca.');
+    }
+
+    function renderHistorial() {
+      const query = (document.getElementById('hist-search').value || '').toLowerCase().trim();
+      const container = document.getElementById('hist-list-container');
+      document.getElementById('hist-count').textContent = `${historialDB.length} registros`;
+
+      const filtered = historialDB.filter(c =>
+        c.nombre.toLowerCase().includes(query) ||
+        c.contrato.toLowerCase().includes(query) ||
+        c.direccion.toLowerCase().includes(query)
+      );
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state">No hay censos guardados en el historial.</div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(c => `
+        <div class="card" style="padding:13px; margin-bottom:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px;">
+            <div>
+              <strong style="font-size:0.95rem; color:var(--primary-dark);">${escapeHtml(c.nombre)}</strong><br>
+              <span style="font-size:0.78rem; font-weight:700; color:var(--secondary);">Contrato: ${escapeHtml(c.contrato)}</span>
+            </div>
+            <span style="font-size:0.72rem; color:var(--on-surface-variant);">${escapeHtml(c.fecha)}</span>
+          </div>
+          <p style="font-size:0.78rem; color:var(--on-surface-variant); margin-bottom:8px;">${escapeHtml(c.direccion)}</p>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; font-size:0.78rem;">
+            <span class="tag-v tag-110">${c.totalKwhDia.toFixed(2)} kWh/día</span>
+            <span class="tag-v tag-220">${c.totalKva.toFixed(2)} kVA</span>
+            <span style="background:#edf5f7; padding:2px 7px; border-radius:6px; font-weight:600;">${c.acometida.breaker}</span>
+          </div>
+          <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:6px;">
+            <button class="btn btn-secondary btn-sm" style="width:100%;" onclick="verCensoHistorial('${c.id}')">Ver</button>
+            <button class="btn btn-primary btn-sm" style="width:100%;" onclick="accionHistorial('${c.id}', 'pdf')">PDF</button>
+            <button class="btn btn-whatsapp btn-sm" style="width:100%;" onclick="accionHistorial('${c.id}', 'whatsapp')">WA</button>
+            <button class="btn btn-email btn-sm" style="width:100%;" onclick="accionHistorial('${c.id}', 'email')">Mail</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function verCensoHistorial(id) {
+      const c = historialDB.find(item => item.id === id);
+      if (!c) return;
+      lastCompletedCenso = c;
+      displayResultadosCenso(c);
+      switchMainTab('tab-censo');
+      goCensoStep(3);
+    }
+
+    function accionHistorial(id, tipo) {
+      const c = historialDB.find(item => item.id === id);
+      if (!c) return;
+      if (tipo === 'pdf') descargarPDFPorObjeto(c);
+      else compartirPDFPorObjeto(c, tipo);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>

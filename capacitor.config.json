@@ -1,0 +1,11 @@
+{
+  "appId": "com.electrocenso.pro",
+  "appName": "ElectroCenso Pro",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  }
+}
